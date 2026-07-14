@@ -1,0 +1,24 @@
+const defineUser = require('./user.js');
+const defineDocument = require('./document.js');
+
+/**
+ * Initializes and binds models dynamically to a specific tenant schema context.
+ * @param {Sequelize} sequelize - The Sequelize connection instance.
+ * @param {string} schemaName - The database schema name.
+ * @returns {object} - Bounded models.
+ */
+function initTenantModels(sequelize, schemaName) {
+  const models = {};
+
+  // Register models with the custom schemaName
+  models.User = defineUser(sequelize, schemaName);
+  models.Document = defineDocument(sequelize, schemaName);
+
+  // Setup associations between tenant models
+  models.User.hasMany(models.Document, { foreignKey: 'created_by_id', as: 'documents' });
+  models.Document.belongsTo(models.User, { foreignKey: 'created_by_id', as: 'creator' });
+
+  return models;
+}
+
+module.exports = initTenantModels;
