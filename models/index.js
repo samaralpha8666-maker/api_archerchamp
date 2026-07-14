@@ -7,7 +7,8 @@ const sequelize = new Sequelize(config.database, config.username, config.passwor
   port: config.port,
   dialect: config.dialect,
   logging: config.logging,
-  pool: config.pool
+  pool: config.pool,
+  dialectOptions: config.dialectOptions
 });
 
 const db = {

@@ -35,6 +35,36 @@ exports.adminLogin = async (req, res) => {
   }
 };
 
+// ─── Register New Super Admin ───────────────────────────────────────────────
+exports.createAdmin = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, error: 'Name, email and password are required.' });
+    }
+
+    const existing = await db.Admin.findOne({ where: { email } });
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'Admin email is already registered.' });
+    }
+
+    const admin = await db.Admin.create({
+      name,
+      email,
+      password
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Super Admin registered successfully.',
+      admin: { id: admin.id, name: admin.name, email: admin.email }
+    });
+  } catch (error) {
+    console.error('Create admin error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error.' });
+  }
+};
+
 // ─── Tenant Registration (Onboarding) ───────────────────────────────────────
 exports.createTenant = async (req, res) => {
   const transaction = await db.sequelize.transaction();

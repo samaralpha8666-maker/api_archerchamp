@@ -10,22 +10,28 @@ async function testBoilerplate() {
   const dbName = process.env.DB_NAME || 'multi_tenant_base';
   const connectionString = process.env.DATABASE_URL || `postgresql://postgres:Asdf%40123@localhost:5432/${dbName}`;
 
-  // Parse connection string to target postgres default database first
-  const pgClient = new Client({
-    connectionString: connectionString.replace(new RegExp(`/${dbName}$`), '/postgres')
-  });
+  const isLocalhost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+  const skipCreate = process.env.DB_SKIP_CREATE === 'true' || !isLocalhost;
 
   try {
-    // 1. Connect to postgres default DB and verify/create application DB
-    await pgClient.connect();
-    const result = await pgClient.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [dbName]);
-    
-    if (result.rowCount === 0) {
-      console.log(`[Test] Database "${dbName}" not found. Creating it dynamically...`);
-      await pgClient.query(`CREATE DATABASE "${dbName}"`);
-      console.log(`[Test] Database "${dbName}" created successfully.`);
+    if (!skipCreate) {
+      console.log('[Test] Checking / creating database dynamically on localhost...');
+      // Parse connection string to target postgres default database first
+      const pgClient = new Client({
+        connectionString: connectionString.replace(new RegExp(`/${dbName}(?:\\?.+)?$`), '/postgres')
+      });
+      await pgClient.connect();
+      const result = await pgClient.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [dbName]);
+      
+      if (result.rowCount === 0) {
+        console.log(`[Test] Database "${dbName}" not found. Creating it dynamically...`);
+        await pgClient.query(`CREATE DATABASE "${dbName}"`);
+        console.log(`[Test] Database "${dbName}" created successfully.`);
+      }
+      await pgClient.end();
+    } else {
+      console.log(`[Test] Skipping dynamic database creation step (connecting directly to: ${dbName}).`);
     }
-    await pgClient.end();
 
     // 2. Sync master tables
     console.log('[Test] Syncing master database models...');

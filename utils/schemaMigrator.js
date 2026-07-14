@@ -14,7 +14,8 @@ async function setupTenantSchema(schemaName) {
     host: config.host,
     port: config.port,
     dialect: config.dialect,
-    logging: false
+    logging: false,
+    dialectOptions: config.dialectOptions
   });
 
   try {
@@ -31,7 +32,8 @@ async function setupTenantSchema(schemaName) {
       dialect: config.dialect,
       logging: false,
       searchPath: schemaName,
-      schema: schemaName
+      schema: schemaName,
+      dialectOptions: config.dialectOptions
     });
 
     const umzug = new Umzug({

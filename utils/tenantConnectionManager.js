@@ -17,7 +17,8 @@ function getRootConnection() {
       port: config.port,
       dialect: config.dialect,
       logging: config.logging,
-      pool: config.pool
+      pool: config.pool,
+      dialectOptions: config.dialectOptions
     });
   }
   return rootSequelizeInstance;
@@ -41,6 +42,7 @@ async function getTenantConnection(schemaName) {
     logging: config.logging,
     searchPath: schemaName,
     schema: schemaName,
+    dialectOptions: config.dialectOptions,
     pool: {
       max: 5,
       min: 0,
