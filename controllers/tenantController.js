@@ -104,3 +104,38 @@ exports.listDocuments = async (req, res) => {
     res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 };
+
+// ─── Update Tenant Profile/Password ─────────────────────────────────────────
+exports.updateTenantProfile = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const user = req.user;
+
+    if (name) user.name = name;
+    if (email) {
+      const existing = await req.tenantModels.User.findOne({
+        where: {
+          email,
+          id: { [req.tenantDb.Sequelize.Op.ne]: user.id }
+        }
+      });
+      if (existing) {
+        return res.status(400).json({ success: false, error: 'Email is already in use in this company.' });
+      }
+      user.email = email;
+    }
+    if (password) {
+      user.password = password;
+    }
+
+    await user.save();
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully.',
+      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    console.error('Update tenant profile error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error.' });
+  }
+};

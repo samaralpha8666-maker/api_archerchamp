@@ -27,7 +27,7 @@ exports.adminLogin = async (req, res) => {
       success: true,
       message: 'Super Admin login successful.',
       token,
-      admin: { id: admin.id, name: admin.name, email: admin.email }
+      admin: { id: admin.id, name: admin.name, email: admin.email, role: 'super_admin' }
     });
   } catch (error) {
     console.error('Super Admin login error:', error);
@@ -69,10 +69,16 @@ exports.createAdmin = async (req, res) => {
 exports.createTenant = async (req, res) => {
   const transaction = await db.sequelize.transaction();
   try {
-    const { name, subdomain, settings } = req.body;
+    const { name, subdomain, settings, adminName, adminEmail, adminPassword, logo } = req.body;
 
     if (!name || !subdomain) {
       return res.status(400).json({ success: false, error: 'Name and subdomain are required.' });
+    }
+
+    if (adminEmail || adminPassword || adminName) {
+      if (!adminEmail || !adminPassword || !adminName) {
+        return res.status(400).json({ success: false, error: 'Admin Name, Email, and Password are all required to set up the company admin.' });
+      }
     }
 
     // Format schema name safely (e.g. tenant_subdomain)
@@ -92,12 +98,18 @@ exports.createTenant = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Tenant subdomain or schema name is already in use.' });
     }
 
+    // Save logo inside settings payload
+    const tenantSettings = {
+      ...(settings || {}),
+      logo: logo || ''
+    };
+
     // 1. Create tenant entry in Master Database
     const tenant = await db.Tenant.create({
       name,
       subdomain: subdomain.toLowerCase(),
       schema_name,
-      settings: settings || {}
+      settings: tenantSettings
     }, { transaction });
 
     // 2. Provision isolated database schema and run tenant migrations
@@ -105,6 +117,20 @@ exports.createTenant = async (req, res) => {
     await setupTenantSchema(schema_name);
 
     await transaction.commit();
+
+    // 3. Create Tenant Admin User inside the newly created tenant schema
+    if (adminEmail && adminPassword && adminName) {
+      console.log(`[MasterController] Seeding admin user "${adminEmail}" inside schema "${schema_name}"...`);
+      const { getTenantConnection } = require('../utils/tenantConnectionManager');
+      const tenantContext = await getTenantConnection(schema_name);
+      await tenantContext.models.User.create({
+        name: adminName,
+        email: adminEmail,
+        password: adminPassword,
+        role: 'admin'
+      });
+      console.log(`[MasterController] Seeded admin user "${adminEmail}" successfully.`);
+    }
 
     res.status(201).json({
       success: true,
@@ -114,11 +140,15 @@ exports.createTenant = async (req, res) => {
         name: tenant.name,
         subdomain: tenant.subdomain,
         schema_name: tenant.schema_name,
-        is_active: tenant.is_active
+        is_active: tenant.is_active,
+        settings: tenant.settings
       }
     });
   } catch (error) {
-    await transaction.rollback();
+    // Check if transaction has already been committed/closed
+    if (transaction && !transaction.finished) {
+      await transaction.rollback();
+    }
     console.error('Tenant onboarding failed:', error);
     res.status(500).json({
       success: false,
@@ -136,6 +166,41 @@ exports.listTenants = async (req, res) => {
     res.status(200).json({ success: true, tenants });
   } catch (error) {
     console.error('List tenants error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error.' });
+  }
+};
+
+// ─── Update Super Admin Profile/Password ────────────────────────────────────
+exports.updateMasterProfile = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const admin = req.admin;
+
+    if (name) admin.name = name;
+    if (email) {
+      const existing = await db.Admin.findOne({
+        where: {
+          email,
+          id: { [db.Sequelize.Op.ne]: admin.id }
+        }
+      });
+      if (existing) {
+        return res.status(400).json({ success: false, error: 'Email is already in use.' });
+      }
+      admin.email = email;
+    }
+    if (password) {
+      admin.password = password;
+    }
+
+    await admin.save();
+    res.status(200).json({
+      success: true,
+      message: 'Super Admin profile updated successfully.',
+      admin: { id: admin.id, name: admin.name, email: admin.email, role: 'super_admin' }
+    });
+  } catch (error) {
+    console.error('Update master profile error:', error);
     res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 };
