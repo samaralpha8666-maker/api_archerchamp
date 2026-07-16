@@ -4,11 +4,9 @@ const cors = require('cors');
 const { Client } = require('pg');
 
 const db = require('./models');
-const tenantResolver = require('./middleware/tenantResolver');
-const { authenticateTenantUser, authenticateMasterAdmin } = require('./middleware/auth');
-
-const masterController = require('./controllers/masterController');
-const tenantController = require('./controllers/tenantController');
+const masterRoutes = require('./routes/masterRoutes');
+const tenantRoutes = require('./routes/tenantRoutes');
+const publicRoutes = require('./routes/publicRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,104 +23,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ─── Master / Super Admin Routes ─────────────────────────────────────────────
-app.post('/api/master/login', masterController.adminLogin);
-app.post('/api/master/register', masterController.createAdmin);
-app.post('/api/master/tenants', authenticateMasterAdmin, masterController.createTenant);
-app.get('/api/master/tenants', authenticateMasterAdmin, masterController.listTenants);
-app.put('/api/master/profile', authenticateMasterAdmin, masterController.updateMasterProfile);
-
-// ─── Public Tenants Route (For frontend login/tenant dropdown) ───────────────
-app.get('/api/tenants', async (req, res) => {
-  try {
-    const tenants = await db.Tenant.findAll({
-      where: { is_active: true },
-      attributes: ['id', 'name', 'subdomain'],
-      order: [['name', 'ASC']]
-    });
-    res.status(200).json({
-      success: true,
-      data: { tenants }
-    });
-  } catch (error) {
-    console.error('Fetch public tenants error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error.' });
-  }
-});
-
-// ─── Verify Token (Check session validity for Super Admin and Tenant User) ───
-app.get('/api/verify_token', async (req, res) => {
-  const jwt = require('jsonwebtoken');
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ success: false, error: 'Authentication required. No token provided.' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecure_multitenant_boilerplate_secret_key_987654');
-
-    if (decoded.role === 'super_admin') {
-      const admin = await db.Admin.findByPk(decoded.adminId);
-      if (!admin || !admin.is_active) {
-        return res.status(401).json({ success: false, error: 'Admin account not found or deactivated.' });
-      }
-      return res.status(200).json({
-        success: true,
-        data: {
-          admin: { id: admin.id, name: admin.name, email: admin.email, role: 'super_admin' }
-        }
-      });
-    } else if (decoded.tenantId) {
-      // Find tenant inside master database
-      const tenant = await db.Tenant.findByPk(decoded.tenantId);
-      if (!tenant || !tenant.is_active) {
-        return res.status(401).json({ success: false, error: 'Tenant inactive or not found.' });
-      }
-
-      // Resolve tenant connection & database model dynamically
-      const { getTenantConnection } = require('./utils/tenantConnectionManager');
-      const tenantContext = await getTenantConnection(tenant.schema_name);
-      
-      const user = await tenantContext.models.User.findByPk(decoded.userId);
-      if (!user || !user.is_active) {
-        return res.status(401).json({ success: false, error: 'User account not found or deactivated.' });
-      }
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            tenantId: tenant.id,
-            tenantSubdomain: tenant.subdomain,
-            school_name: tenant.name // map to school_name for layout title consistency
-          }
-        }
-      });
-    } else {
-      return res.status(401).json({ success: false, error: 'Invalid token payload.' });
-    }
-  } catch (error) {
-    console.error('Token verification error:', error);
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ success: false, error: 'Token expired. Please login again.' });
-    }
-    return res.status(401).json({ success: false, error: 'Invalid or expired token.' });
-  }
-});
-
-// ─── Tenant-Scoped Routes (Tenant Resolver Middleware Required) ──────────────
-app.post('/api/tenant/signup', tenantResolver, tenantController.signup);
-app.post('/api/tenant/login', tenantResolver, tenantController.login);
-
-// Authenticated Tenant Routes
-app.post('/api/tenant/documents', tenantResolver, authenticateTenantUser, tenantController.createDocument);
-app.get('/api/tenant/documents', tenantResolver, authenticateTenantUser, tenantController.listDocuments);
-app.put('/api/tenant/profile', tenantResolver, authenticateTenantUser, tenantController.updateTenantProfile);
+// ─── Modular Router Mounts ────────────────────────────────────────────────────
+app.use('/api/master', masterRoutes);
+app.use('/api/tenant', tenantRoutes);
+app.use('/api', publicRoutes);
 
 
 // ─── Error Handling Middleware ───────────────────────────────────────────────

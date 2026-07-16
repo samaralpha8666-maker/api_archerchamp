@@ -204,3 +204,82 @@ exports.updateMasterProfile = async (req, res) => {
     res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 };
+
+// ─── Create Tenant Admin User ────────────────────────────────────────────────
+exports.createTenantAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, error: 'Name, email, and password are required.' });
+    }
+
+    // 1. Find tenant in master DB
+    const tenant = await db.Tenant.findByPk(id);
+    if (!tenant) {
+      return res.status(404).json({ success: false, error: 'Tenant not found.' });
+    }
+
+    // 2. Resolve tenant connection & database model dynamically
+    const { getTenantConnection } = require('../utils/tenantConnectionManager');
+    const tenantContext = await getTenantConnection(tenant.schema_name);
+
+    // 3. Check if user already exists in this tenant schema
+    const existing = await tenantContext.models.User.findOne({ where: { email } });
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'Email is already in use in this company.' });
+    }
+
+    // 4. Create user with role 'admin' inside tenant schema
+    const user = await tenantContext.models.User.create({
+      name,
+      email,
+      password,
+      role: 'admin'
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Company admin added successfully.',
+      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    console.error('Create tenant admin error:', error);
+    res.status(500).json({ success: false, error: `Failed to add company admin: ${error.message}` });
+  }
+};
+
+// ─── List Tenant Admins ──────────────────────────────────────────────────────
+exports.listTenantAdmins = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Find tenant in master DB
+    const tenant = await db.Tenant.findByPk(id);
+    if (!tenant) {
+      return res.status(404).json({ success: false, error: 'Tenant not found.' });
+    }
+
+    // 2. Resolve tenant connection & database model dynamically
+    const { getTenantConnection } = require('../utils/tenantConnectionManager');
+    const tenantContext = await getTenantConnection(tenant.schema_name);
+
+    // 3. Find all users in this tenant schema with role 'admin'
+    const admins = await tenantContext.models.User.findAll({
+      where: { role: 'admin' },
+      attributes: ['id', 'name', 'email', 'is_active', 'createdAt'],
+      order: [['createdAt', 'ASC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      admins
+    });
+  } catch (error) {
+    console.error('List tenant admins error:', error);
+    res.status(500).json({ success: false, error: `Failed to fetch company admins: ${error.message}` });
+  }
+};
+
+

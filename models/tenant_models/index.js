@@ -1,5 +1,9 @@
 const defineUser = require('./user.js');
 const defineDocument = require('./document.js');
+const defineOifOrder = require('./oifOrder.js');
+const defineElectronicsBoard = require('./electronicsBoard.js');
+const defineBranch = require('./branch.js');
+const defineBrand = require('./brand.js');
 
 /**
  * Initializes and binds models dynamically to a specific tenant schema context.
@@ -13,10 +17,17 @@ function initTenantModels(sequelize, schemaName) {
   // Register models with the custom schemaName
   models.User = defineUser(sequelize, schemaName);
   models.Document = defineDocument(sequelize, schemaName);
+  models.OifOrder = defineOifOrder(sequelize, schemaName);
+  models.ElectronicsBoard = defineElectronicsBoard(sequelize, schemaName);
+  models.Branch = defineBranch(sequelize, schemaName);
+  models.Brand = defineBrand(sequelize, schemaName);
 
   // Setup associations between tenant models
   models.User.hasMany(models.Document, { foreignKey: 'created_by_id', as: 'documents' });
   models.Document.belongsTo(models.User, { foreignKey: 'created_by_id', as: 'creator' });
+
+  models.User.hasMany(models.OifOrder, { foreignKey: 'created_by_id', as: 'oifOrders' });
+  models.OifOrder.belongsTo(models.User, { foreignKey: 'created_by_id', as: 'creator' });
 
   return models;
 }
