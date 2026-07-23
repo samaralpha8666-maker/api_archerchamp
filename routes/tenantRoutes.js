@@ -32,6 +32,8 @@ router.get('/electronics', electronicsController.list);
 router.post('/electronics', electronicsController.create);
 router.put('/electronics/:id', electronicsController.update);
 router.delete('/electronics/:id', electronicsController.delete);
+router.post('/electronics/:id/manufacture', electronicsController.manufacture);
+router.get('/electronics/logs', electronicsController.logs);
 
 // Branch Routes
 router.get('/branches', branchController.list);

@@ -2,6 +2,7 @@ const defineUser = require('./user.js');
 const defineDocument = require('./document.js');
 const defineOifOrder = require('./oifOrder.js');
 const defineElectronicsBoard = require('./electronicsBoard.js');
+const defineElectronicsTransactionLog = require('./electronicsTransactionLog.js');
 const defineBranch = require('./branch.js');
 const defineBrand = require('./brand.js');
 
@@ -19,6 +20,7 @@ function initTenantModels(sequelize, schemaName) {
   models.Document = defineDocument(sequelize, schemaName);
   models.OifOrder = defineOifOrder(sequelize, schemaName);
   models.ElectronicsBoard = defineElectronicsBoard(sequelize, schemaName);
+  models.ElectronicsTransactionLog = defineElectronicsTransactionLog(sequelize, schemaName);
   models.Branch = defineBranch(sequelize, schemaName);
   models.Brand = defineBrand(sequelize, schemaName);
 
@@ -28,6 +30,9 @@ function initTenantModels(sequelize, schemaName) {
 
   models.User.hasMany(models.OifOrder, { foreignKey: 'created_by_id', as: 'oifOrders' });
   models.OifOrder.belongsTo(models.User, { foreignKey: 'created_by_id', as: 'creator' });
+
+  models.ElectronicsBoard.hasMany(models.ElectronicsTransactionLog, { foreignKey: 'board_id', as: 'transactionLogs' });
+  models.ElectronicsTransactionLog.belongsTo(models.ElectronicsBoard, { foreignKey: 'board_id', as: 'board' });
 
   return models;
 }

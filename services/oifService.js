@@ -7,7 +7,7 @@ exports.createOrder = async (oifModel, data, userId, userName) => {
   const payload = {
     oifNo: nextOifNo,
     poNo: data.poNo,
-    orderDate: data.orderDate || new Date(),
+    orderDate: data.orderDate || new Date().toISOString().split('T')[0],
     dispatchDate: data.dispatchDate,
     brand: data.brand || 'Archerchem',
     status: data.status || 'pending',
@@ -24,7 +24,7 @@ exports.createOrder = async (oifModel, data, userId, userName) => {
     courier: data.courier,
     remarks: data.remarks,
     preparedBy: data.preparedBy || userName || 'Admin',
-    prepDate: new Date(),
+    prepDate: data.prepDate || new Date().toISOString().split('T')[0],
     sign: data.sign,
     branch: data.branch || 'Vasai Factory (HQ)',
     createdById: userId

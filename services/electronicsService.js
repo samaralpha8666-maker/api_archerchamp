@@ -91,11 +91,29 @@ exports.createBoard = async (boardModel, data) => {
   return await electronicsRepository.create(boardModel, payload);
 };
 
-exports.updateBoard = async (boardModel, id, data) => {
+const logTransaction = async (logModel, boardId, type, qty, ref, operatorName, partsSnapshot) => {
+  try {
+    await logModel.create({
+      boardId,
+      type,
+      qty,
+      ref: ref || null,
+      operatorName: operatorName || 'System Operator',
+      partsSnapshot: partsSnapshot || []
+    });
+  } catch (err) {
+    console.error('[Electronics Service] Failed to log stock transaction:', err);
+  }
+};
+
+exports.updateBoard = async (boardModel, logModel, id, data, operatorName) => {
   const board = await electronicsRepository.findByPk(boardModel, id);
   if (!board) {
     throw new Error('Board not found.');
   }
+
+  const prevParts = JSON.parse(JSON.stringify(board.parts || []));
+  const prevQty = board.qty;
 
   const fieldsToUpdate = ['name', 'brand', 'model', 'version', 'location', 'description', 'qty', 'minQty', 'parts'];
   fieldsToUpdate.forEach((field) => {
@@ -104,7 +122,89 @@ exports.updateBoard = async (boardModel, id, data) => {
     }
   });
 
-  return await electronicsRepository.save(board);
+  const savedBoard = await electronicsRepository.save(board);
+
+  if (data.log_type) {
+    const partsSnapshot = (data.parts || []).map(p => {
+      const prev = prevParts.find(x => x.id === p.id);
+      return {
+        name: p.name,
+        value: p.value,
+        before: prev ? prev.qty : 0,
+        after: p.qty
+      };
+    });
+
+    await logTransaction(
+      logModel,
+      id,
+      data.log_type,
+      data.log_qty || 0,
+      data.log_ref || '',
+      operatorName,
+      partsSnapshot
+    );
+  }
+
+  return savedBoard;
+};
+
+exports.manufactureBoard = async (boardModel, logModel, id, qty, ref, operatorName) => {
+  const board = await electronicsRepository.findByPk(boardModel, id);
+  if (!board) {
+    throw new Error('Board not found.');
+  }
+
+  const prevParts = JSON.parse(JSON.stringify(board.parts || []));
+
+  // Deduct parts based on basePerBoard ratio
+  const updatedParts = (board.parts || []).map((p) => {
+    const deduction = (p.basePerBoard || 1) * qty;
+    return {
+      ...p,
+      qty: Math.max(0, p.qty - deduction)
+    };
+  });
+
+  board.parts = updatedParts;
+  board.qty = board.qty + qty;
+  board.date = new Date();
+
+  const savedBoard = await electronicsRepository.save(board);
+
+  // Build log snapshot
+  const partsSnapshot = updatedParts.map((p) => {
+    const prev = prevParts.find(x => x.id === p.id);
+    return {
+      name: p.name,
+      value: p.value,
+      before: prev ? prev.qty : 0,
+      after: p.qty
+    };
+  });
+
+  await logTransaction(
+    logModel,
+    id,
+    'manufacture',
+    qty,
+    ref,
+    operatorName,
+    partsSnapshot
+  );
+
+  return savedBoard;
+};
+
+exports.getTransactionLogs = async (logModel, boardModel, boardId) => {
+  const queryOptions = {
+    order: [['createdAt', 'DESC']],
+    include: [{ model: boardModel, as: 'board', attributes: ['name', 'model', 'version'] }]
+  };
+  if (boardId) {
+    queryOptions.where = { board_id: boardId };
+  }
+  return await logModel.findAll(queryOptions);
 };
 
 exports.deleteBoard = async (boardModel, id) => {
