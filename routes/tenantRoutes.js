@@ -53,4 +53,10 @@ router.post('/brands', brandController.create);
 router.put('/brands/:id', brandController.update);
 router.delete('/brands/:id', brandController.delete);
 
+// Purchase Requisition Routes
+router.get('/purchase', tenantController.getPurchaseRequisitions);
+router.post('/purchase', tenantController.createPurchaseRequisition);
+router.put('/purchase/:id', tenantController.updatePurchaseRequisition);
+router.delete('/purchase/:id', tenantController.deletePurchaseRequisition);
+
 module.exports = router;

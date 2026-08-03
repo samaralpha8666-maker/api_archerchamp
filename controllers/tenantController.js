@@ -336,5 +336,98 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+// ==================== PURCHASE REQUISITIONS (PR) ====================
+exports.getPurchaseRequisitions = async (req, res) => {
+  try {
+    const { branch } = req.query;
+    const whereClause = branch ? { branch } : {};
+    const requisitions = await req.tenantModels.PurchaseRequisition.findAll({
+      where: whereClause,
+      order: [['createdAt', 'DESC']]
+    });
+    res.status(200).json({ success: true, requisitions });
+  } catch (error) {
+    console.error('Get Purchase Requisitions error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error.' });
+  }
+};
+
+exports.createPurchaseRequisition = async (req, res) => {
+  try {
+    const { prNo, date, department, fulfillmentDate, preferredVendor, branch, status, items, notes, requisitionBy, approvedBy } = req.body;
+    
+    let generatedPrNo = prNo;
+    if (!generatedPrNo) {
+      const count = await req.tenantModels.PurchaseRequisition.count();
+      generatedPrNo = `PR-${String(count + 1).padStart(3, '0')}`;
+    }
+
+    const pr = await req.tenantModels.PurchaseRequisition.create({
+      prNo: generatedPrNo,
+      date: date || new Date().toISOString().split('T')[0],
+      department,
+      fulfillmentDate,
+      preferredVendor,
+      branch: branch || 'Vasai Factory (HQ)',
+      status: status || 'pending',
+      items: items || [],
+      notes,
+      requisitionBy,
+      approvedBy
+    });
+
+    res.status(201).json({ success: true, requisition: pr });
+  } catch (error) {
+    console.error('Create Purchase Requisition error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error.' });
+  }
+};
+
+exports.updatePurchaseRequisition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pr = await req.tenantModels.PurchaseRequisition.findByPk(id);
+    if (!pr) {
+      return res.status(404).json({ success: false, error: 'Purchase requisition not found.' });
+    }
+
+    const { prNo, date, department, fulfillmentDate, preferredVendor, branch, status, items, notes, requisitionBy, approvedBy } = req.body;
+    
+    if (prNo) pr.prNo = prNo;
+    if (date) pr.date = date;
+    if (department !== undefined) pr.department = department;
+    if (fulfillmentDate !== undefined) pr.fulfillmentDate = fulfillmentDate;
+    if (preferredVendor !== undefined) pr.preferredVendor = preferredVendor;
+    if (branch) pr.branch = branch;
+    if (status) pr.status = status;
+    if (items) pr.items = items;
+    if (notes !== undefined) pr.notes = notes;
+    if (requisitionBy !== undefined) pr.requisitionBy = requisitionBy;
+    if (approvedBy !== undefined) pr.approvedBy = approvedBy;
+
+    await pr.save();
+    res.status(200).json({ success: true, requisition: pr });
+  } catch (error) {
+    console.error('Update Purchase Requisition error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error.' });
+  }
+};
+
+exports.deletePurchaseRequisition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pr = await req.tenantModels.PurchaseRequisition.findByPk(id);
+    if (!pr) {
+      return res.status(404).json({ success: false, error: 'Purchase requisition not found.' });
+    }
+
+    await pr.destroy();
+    res.status(200).json({ success: true, message: 'Purchase requisition deleted successfully.' });
+  } catch (error) {
+    console.error('Delete Purchase Requisition error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error.' });
+  }
+};
+
 
 
