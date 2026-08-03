@@ -1,3 +1,6 @@
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecure_multitenant_boilerplate_secret_key_987654';
+
 const ALL_MODULES = [
   'dashboard',
   'brands',
