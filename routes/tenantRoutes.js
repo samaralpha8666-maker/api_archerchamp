@@ -22,6 +22,12 @@ router.post('/documents', tenantController.createDocument);
 router.get('/documents', tenantController.listDocuments);
 router.put('/profile', tenantController.updateTenantProfile);
 
+// User Management Routes
+router.get('/users', tenantController.listUsers);
+router.post('/users', tenantController.createUser);
+router.put('/users/:id', tenantController.updateUser);
+router.delete('/users/:id', tenantController.deleteUser);
+
 // OIF Order Routes
 router.post('/oif', oifController.create);
 router.get('/oif', oifController.list);

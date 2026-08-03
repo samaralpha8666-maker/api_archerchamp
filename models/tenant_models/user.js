@@ -34,10 +34,16 @@ module.exports = (sequelize, schemaName) => {
     role: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: 'member',
-      validate: {
-        isIn: [['admin', 'member']]
-      }
+      defaultValue: 'admin'
+    },
+    department: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: 'Administration'
+    },
+    permissions: {
+      type: DataTypes.JSON,
+      allowNull: true
     },
     is_active: {
       type: DataTypes.BOOLEAN,

@@ -56,6 +56,18 @@ router.get('/verify_token', async (req, res) => {
         return res.status(401).json({ success: false, error: 'User account not found or deactivated.' });
       }
 
+      const ALL_MODULES = ['dashboard', 'brands', 'oif', 'electronics', 'qc', 'calibration', 'amc', 'purchase', 'store', 'users'];
+      const DEFAULT_ROLE_PERMISSIONS = {
+        admin: ALL_MODULES,
+        manager: ['dashboard', 'qc', 'calibration', 'amc', 'purchase', 'store'],
+        rnd: ['dashboard', 'qc', 'calibration', 'electronics'],
+        service: ['dashboard', 'amc', 'calibration'],
+        accounts: ['dashboard', 'purchase'],
+        store: ['dashboard', 'store'],
+        custom: ['dashboard']
+      };
+      const userPermissions = user.role === 'admin' ? ALL_MODULES : (user.permissions && Array.isArray(user.permissions) && user.permissions.length > 0 ? user.permissions : (DEFAULT_ROLE_PERMISSIONS[user.role] || ALL_MODULES));
+
       return res.status(200).json({
         success: true,
         data: {
@@ -64,6 +76,8 @@ router.get('/verify_token', async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
+            department: user.department || 'Administration',
+            permissions: userPermissions,
             tenantId: tenant.id,
             tenantSubdomain: tenant.subdomain,
             school_name: tenant.name
