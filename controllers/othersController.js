@@ -45,23 +45,27 @@ exports.getReportsSummary = async (req, res) => {
 // 2. OIML Calculation Records
 exports.getOimlRecords = async (req, res) => {
   try {
-    const { OimlRecord } = req.tenantModels;
+    const { OimlRecord } = req.tenantModels || {};
+    if (!OimlRecord) return res.status(200).json({ success: true, records: [] });
+    await OimlRecord.sync();
     const records = await OimlRecord.findAll({ order: [['id', 'DESC']], limit: 50 });
     return res.status(200).json({ success: true, records });
   } catch (error) {
     console.error('getOimlRecords error:', error);
-    return res.status(500).json({ success: false, error: 'Failed to fetch OIML records' });
+    return res.status(500).json({ success: false, error: error.message || 'Failed to fetch OIML records' });
   }
 };
 
 exports.createOimlRecord = async (req, res) => {
   try {
-    const { OimlRecord } = req.tenantModels;
+    const { OimlRecord } = req.tenantModels || {};
+    if (!OimlRecord) return res.status(500).json({ success: false, error: 'OimlRecord model not found' });
+    await OimlRecord.sync();
     const record = await OimlRecord.create(req.body);
     return res.status(201).json({ success: true, record });
   } catch (error) {
     console.error('createOimlRecord error:', error);
-    return res.status(500).json({ success: false, error: 'Failed to save OIML calculation record' });
+    return res.status(500).json({ success: false, error: error.message || 'Failed to save OIML calculation record' });
   }
 };
 
@@ -72,6 +76,7 @@ exports.getStampingApplications = async (req, res) => {
     if (!StampingApplication) {
       return res.status(200).json({ success: true, applications: [] });
     }
+    await StampingApplication.sync();
     const applications = await StampingApplication.findAll({ order: [['id', 'DESC']] });
     return res.status(200).json({ success: true, applications });
   } catch (error) {
@@ -86,6 +91,8 @@ exports.createStampingApplication = async (req, res) => {
     if (!StampingApplication) {
       return res.status(500).json({ success: false, error: 'StampingApplication model not found on tenant schema' });
     }
+    await StampingApplication.sync();
+
     const { date, appNo, to, subject, mfgLic, dlrLic, repLic, lcrNo, chequeRef, grandTotal, rows, status } = req.body;
     const application = await StampingApplication.create({
       date: date || new Date().toISOString().split('T')[0],
@@ -114,6 +121,7 @@ exports.deleteStampingApplication = async (req, res) => {
     if (!StampingApplication) {
       return res.status(500).json({ success: false, error: 'StampingApplication model not found on tenant schema' });
     }
+    await StampingApplication.sync();
     await StampingApplication.destroy({ where: { id: req.params.id } });
     return res.status(200).json({ success: true, message: 'Stamping application deleted successfully' });
   } catch (error) {

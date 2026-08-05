@@ -38,6 +38,8 @@ app.use((err, req, res, next) => {
   });
 });
 
+const { setupTenantSchema } = require('./utils/schemaMigrator');
+
 // ─── Auto-Create Database & Server Initialization ────────────────────────────
 async function initializeApp() {
   const dbName = process.env.DB_NAME || 'multi_tenant_base';
@@ -91,7 +93,20 @@ async function initializeApp() {
       console.log('[App Startup] Default Super Admin password updated successfully.');
     }
 
-    // 4. Start listening
+    // 4. Automatically run schema migrations for all active tenants on startup
+    try {
+      console.log('[App Startup] Running tenant schema migrations...');
+      const tenants = await db.Tenant.findAll({ where: { is_active: true } });
+      for (const tenant of tenants) {
+        console.log(`[App Startup] Auto-migrating tenant schema: ${tenant.schema_name}`);
+        await setupTenantSchema(tenant.schema_name);
+      }
+      console.log('[App Startup] All tenant schema migrations applied.');
+    } catch (migErr) {
+      console.error('[App Startup] Non-fatal tenant migration log:', migErr.message);
+    }
+
+    // 5. Start listening
     app.listen(PORT, () => {
       console.log(`\n======================================================`);
       console.log(`🚀 Base Multi-Tenant API server running on port: ${PORT}`);
