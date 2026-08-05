@@ -68,34 +68,57 @@ exports.createOimlRecord = async (req, res) => {
 // 3. Stamping Applications
 exports.getStampingApplications = async (req, res) => {
   try {
-    const { StampingApplication } = req.tenantModels;
+    const { StampingApplication } = req.tenantModels || {};
+    if (!StampingApplication) {
+      return res.status(200).json({ success: true, applications: [] });
+    }
     const applications = await StampingApplication.findAll({ order: [['id', 'DESC']] });
     return res.status(200).json({ success: true, applications });
   } catch (error) {
     console.error('getStampingApplications error:', error);
-    return res.status(500).json({ success: false, error: 'Failed to fetch stamping applications' });
+    return res.status(500).json({ success: false, error: error.message || 'Failed to fetch stamping applications' });
   }
 };
 
 exports.createStampingApplication = async (req, res) => {
   try {
-    const { StampingApplication } = req.tenantModels;
-    const application = await StampingApplication.create(req.body);
+    const { StampingApplication } = req.tenantModels || {};
+    if (!StampingApplication) {
+      return res.status(500).json({ success: false, error: 'StampingApplication model not found on tenant schema' });
+    }
+    const { date, appNo, to, subject, mfgLic, dlrLic, repLic, lcrNo, chequeRef, grandTotal, rows, status } = req.body;
+    const application = await StampingApplication.create({
+      date: date || new Date().toISOString().split('T')[0],
+      appNo: appNo || '',
+      to: to || '',
+      subject: subject || '',
+      mfgLic: mfgLic || '',
+      dlrLic: dlrLic || '',
+      repLic: repLic || '',
+      lcrNo: lcrNo || '',
+      chequeRef: chequeRef || '',
+      grandTotal: parseFloat(grandTotal) || 0,
+      rows: Array.isArray(rows) ? rows : [],
+      status: status || 'pending'
+    });
     return res.status(201).json({ success: true, application });
   } catch (error) {
     console.error('createStampingApplication error:', error);
-    return res.status(500).json({ success: false, error: 'Failed to create stamping application' });
+    return res.status(500).json({ success: false, error: error.message || 'Failed to create stamping application' });
   }
 };
 
 exports.deleteStampingApplication = async (req, res) => {
   try {
-    const { StampingApplication } = req.tenantModels;
+    const { StampingApplication } = req.tenantModels || {};
+    if (!StampingApplication) {
+      return res.status(500).json({ success: false, error: 'StampingApplication model not found on tenant schema' });
+    }
     await StampingApplication.destroy({ where: { id: req.params.id } });
     return res.status(200).json({ success: true, message: 'Stamping application deleted successfully' });
   } catch (error) {
     console.error('deleteStampingApplication error:', error);
-    return res.status(500).json({ success: false, error: 'Failed to delete stamping application' });
+    return res.status(500).json({ success: false, error: error.message || 'Failed to delete stamping application' });
   }
 };
 
