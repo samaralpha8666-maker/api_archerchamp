@@ -10,6 +10,7 @@ const defineStampingApplication = require('./stampingApplication.js');
 const defineOimlRecord = require('./oimlRecord.js');
 const defineNotification = require('./notification.js');
 const defineCalibrationCertificate = require('./calibrationCertificate.js');
+const defineQcReport = require('./qcReport.js');
 
 /**
  * Initializes and binds models dynamically to a specific tenant schema context.
@@ -33,6 +34,7 @@ function initTenantModels(sequelize, schemaName) {
   models.OimlRecord = defineOimlRecord(sequelize, schemaName);
   models.Notification = defineNotification(sequelize, schemaName);
   models.CalibrationCertificate = defineCalibrationCertificate(sequelize, schemaName);
+  models.QcReport = defineQcReport(sequelize, schemaName);
 
   // Setup associations between tenant models
   models.User.hasMany(models.Document, { foreignKey: 'created_by_id', as: 'documents' });
