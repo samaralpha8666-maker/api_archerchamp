@@ -6,6 +6,9 @@ const defineElectronicsTransactionLog = require('./electronicsTransactionLog.js'
 const defineBranch = require('./branch.js');
 const defineBrand = require('./brand.js');
 const definePurchaseRequisition = require('./purchaseRequisition.js');
+const defineStampingApplication = require('./stampingApplication.js');
+const defineOimlRecord = require('./oimlRecord.js');
+const defineNotification = require('./notification.js');
 
 /**
  * Initializes and binds models dynamically to a specific tenant schema context.
@@ -25,6 +28,9 @@ function initTenantModels(sequelize, schemaName) {
   models.Branch = defineBranch(sequelize, schemaName);
   models.Brand = defineBrand(sequelize, schemaName);
   models.PurchaseRequisition = definePurchaseRequisition(sequelize, schemaName);
+  models.StampingApplication = defineStampingApplication(sequelize, schemaName);
+  models.OimlRecord = defineOimlRecord(sequelize, schemaName);
+  models.Notification = defineNotification(sequelize, schemaName);
 
   // Setup associations between tenant models
   models.User.hasMany(models.Document, { foreignKey: 'created_by_id', as: 'documents' });

@@ -6,6 +6,7 @@ const oifController = require('../controllers/oifController');
 const electronicsController = require('../controllers/electronicsController');
 const branchController = require('../controllers/branchController');
 const brandController = require('../controllers/brandController');
+const othersController = require('../controllers/othersController');
 const { authenticateTenantUser } = require('../middleware/auth');
 
 // All tenant routes require resolving the tenant context
@@ -58,5 +59,21 @@ router.get('/purchase', tenantController.getPurchaseRequisitions);
 router.post('/purchase', tenantController.createPurchaseRequisition);
 router.put('/purchase/:id', tenantController.updatePurchaseRequisition);
 router.delete('/purchase/:id', tenantController.deletePurchaseRequisition);
+
+// Reports Summary Route
+router.get('/reports/summary', othersController.getReportsSummary);
+
+// OIML Calculation Routes
+router.get('/oiml', othersController.getOimlRecords);
+router.post('/oiml', othersController.createOimlRecord);
+
+// Stamping Application Routes
+router.get('/stamping', othersController.getStampingApplications);
+router.post('/stamping', othersController.createStampingApplication);
+router.delete('/stamping/:id', othersController.deleteStampingApplication);
+
+// Notifications Routes
+router.get('/notifications', othersController.getNotifications);
+router.post('/notifications/mark-read', othersController.markAllNotificationsRead);
 
 module.exports = router;
