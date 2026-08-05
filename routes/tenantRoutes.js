@@ -9,6 +9,7 @@ const brandController = require('../controllers/brandController');
 const othersController = require('../controllers/othersController');
 const calibrationController = require('../controllers/calibrationController');
 const qcController = require('../controllers/qcController');
+const purchaseController = require('../controllers/purchaseController');
 const { authenticateTenantUser } = require('../middleware/auth');
 
 // All tenant routes require resolving the tenant context
@@ -57,10 +58,10 @@ router.put('/brands/:id', brandController.update);
 router.delete('/brands/:id', brandController.delete);
 
 // Purchase Requisition Routes
-router.get('/purchase', tenantController.getPurchaseRequisitions);
-router.post('/purchase', tenantController.createPurchaseRequisition);
-router.put('/purchase/:id', tenantController.updatePurchaseRequisition);
-router.delete('/purchase/:id', tenantController.deletePurchaseRequisition);
+router.get('/purchase', purchaseController.list);
+router.post('/purchase', purchaseController.create);
+router.put('/purchase/:id', purchaseController.update);
+router.delete('/purchase/:id', purchaseController.delete);
 
 // Calibration Certificate Routes
 router.get('/calibration', calibrationController.list);

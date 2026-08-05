@@ -5,34 +5,36 @@ module.exports = (sequelize, schemaName) => {
     'PurchaseRequisition',
     {
       id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         primaryKey: true,
-        autoIncrement: true
+        allowNull: false
       },
       prNo: {
         type: DataTypes.STRING,
+        field: 'pr_no',
         allowNull: false
       },
       date: {
-        type: DataTypes.STRING,
+        type: DataTypes.DATEONLY,
         allowNull: false
       },
       department: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: false
       },
       fulfillmentDate: {
-        type: DataTypes.STRING,
+        type: DataTypes.DATEONLY,
+        field: 'fulfillment_date',
         allowNull: true
       },
       preferredVendor: {
         type: DataTypes.STRING,
+        field: 'preferred_vendor',
         allowNull: true
       },
       branch: {
         type: DataTypes.STRING,
-        allowNull: true,
-        defaultValue: 'Vasai Factory (HQ)'
+        allowNull: true
       },
       status: {
         type: DataTypes.STRING,
@@ -49,17 +51,21 @@ module.exports = (sequelize, schemaName) => {
       },
       requisitionBy: {
         type: DataTypes.STRING,
-        allowNull: true
+        field: 'requisition_by',
+        allowNull: false
       },
       approvedBy: {
         type: DataTypes.STRING,
+        field: 'approved_by',
         allowNull: true
       }
     },
     {
-      tableName: 'purchase_requisitions',
       schema: schemaName,
-      timestamps: true
+      tableName: 'purchase_requisitions',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at'
     }
   );
 
