@@ -104,6 +104,21 @@ module.exports = (sequelize, schemaName) => {
         field: 'repeat_sd',
         allowNull: true
       },
+      linWeightA: {
+        type: DataTypes.JSON,
+        field: 'lin_weight_a',
+        allowNull: true
+      },
+      linWeightB: {
+        type: DataTypes.JSON,
+        field: 'lin_weight_b',
+        allowNull: true
+      },
+      linWeightC: {
+        type: DataTypes.JSON,
+        field: 'lin_weight_c',
+        allowNull: true
+      },
       linRows: {
         type: DataTypes.JSON,
         field: 'lin_rows',

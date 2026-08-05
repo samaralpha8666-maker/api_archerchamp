@@ -90,6 +90,18 @@ module.exports = {
         type: DataTypes.STRING,
         allowNull: true
       },
+      lin_weight_a: {
+        type: DataTypes.JSON,
+        allowNull: true
+      },
+      lin_weight_b: {
+        type: DataTypes.JSON,
+        allowNull: true
+      },
+      lin_weight_c: {
+        type: DataTypes.JSON,
+        allowNull: true
+      },
       lin_rows: {
         type: DataTypes.JSON,
         allowNull: true
