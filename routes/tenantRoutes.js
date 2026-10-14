@@ -79,6 +79,7 @@ router.delete('/qc/:id', qcController.delete);
 // Store & Inventory Routes
 router.get('/store', storeController.list);
 router.post('/store', storeController.create);
+router.post('/store/bulk', storeController.bulkImport);
 router.put('/store/:id', storeController.update);
 router.post('/store/:id/adjust', storeController.adjustStock);
 router.delete('/store/:id', storeController.delete);

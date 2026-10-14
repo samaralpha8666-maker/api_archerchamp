@@ -170,6 +170,116 @@ exports.create = async (req, res) => {
   }
 };
 
+// Bulk Import Store Items (from Excel or CSV)
+exports.bulkImport = async (req, res) => {
+  try {
+    const { StoreItem, StoreTransactionLog } = req.tenantModels || {};
+    if (!StoreItem) {
+      return res.status(500).json({ success: false, error: 'StoreItem model not found' });
+    }
+    await StoreItem.sync();
+    if (StoreTransactionLog) await StoreTransactionLog.sync();
+
+    const { items, branch } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'Items array is required and cannot be empty' });
+    }
+
+    const targetBranch = branch || req.query.branch || 'Vasai Factory (HQ)';
+    const operator = req.user ? `${req.user.name || req.user.email}` : 'Store Incharge (Excel Import)';
+
+    let createdCount = 0;
+    let updatedCount = 0;
+    const processedItems = [];
+
+    for (const rawItem of items) {
+      const name = rawItem.itemName ? String(rawItem.itemName).trim() : '';
+      if (!name) continue;
+
+      const qty = Math.max(0, parseInt(rawItem.quantity, 10) || 0);
+      const tolerance = Math.max(0, parseInt(rawItem.toleranceLimit, 10) || 0);
+      const unit = rawItem.unit ? String(rawItem.unit).trim() : 'Pcs';
+      const category = rawItem.category ? String(rawItem.category).trim() : 'General Store';
+      const notes = rawItem.notes ? String(rawItem.notes).trim() : null;
+
+      // Check if item already exists in this branch
+      let item = await StoreItem.findOne({
+        where: {
+          itemName: name,
+          branch: targetBranch
+        }
+      });
+
+      if (item) {
+        const prevQty = Number(item.quantity) || 0;
+        const newQty = prevQty + qty;
+        await item.update({
+          quantity: newQty,
+          toleranceLimit: tolerance > 0 ? tolerance : item.toleranceLimit,
+          unit: unit || item.unit,
+          category: category || item.category,
+          notes: notes || item.notes
+        });
+
+        if (StoreTransactionLog && qty > 0) {
+          await StoreTransactionLog.create({
+            itemId: item.id,
+            itemName: item.itemName,
+            type: 'STOCK_IN',
+            qtyChange: qty,
+            finalQty: newQty,
+            reason: 'Excel Bulk Import Inward',
+            reference: rawItem.reference || 'EXCEL-IMPORT',
+            operatorName: operator,
+            branch: targetBranch
+          });
+        }
+        updatedCount++;
+        processedItems.push(item);
+      } else {
+        item = await StoreItem.create({
+          itemName: name,
+          quantity: qty,
+          toleranceLimit: tolerance,
+          unit: unit || 'Pcs',
+          category: category || 'General Store',
+          branch: targetBranch,
+          notes: notes || null
+        });
+
+        if (StoreTransactionLog) {
+          await StoreTransactionLog.create({
+            itemId: item.id,
+            itemName: item.itemName,
+            type: 'INITIAL_ENTRY',
+            qtyChange: qty,
+            finalQty: qty,
+            reason: 'Excel Bulk Import Initial Stock',
+            reference: rawItem.reference || 'EXCEL-IMPORT',
+            operatorName: operator,
+            branch: targetBranch
+          });
+        }
+        createdCount++;
+        processedItems.push(item);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully imported ${processedItems.length} items (${createdCount} new, ${updatedCount} updated)`,
+      createdCount,
+      updatedCount,
+      totalProcessed: processedItems.length,
+      items: processedItems
+    });
+  } catch (error) {
+    console.error('Store bulk import error:', error);
+    return res.status(500).json({ success: false, error: error.message || 'Failed to process bulk import' });
+  }
+};
+
+
 // Update item details or tolerance limit
 exports.update = async (req, res) => {
   try {
