@@ -10,6 +10,7 @@ const othersController = require('../controllers/othersController');
 const calibrationController = require('../controllers/calibrationController');
 const qcController = require('../controllers/qcController');
 const purchaseController = require('../controllers/purchaseController');
+const storeController = require('../controllers/storeController');
 const { authenticateTenantUser } = require('../middleware/auth');
 
 // All tenant routes require resolving the tenant context
@@ -74,6 +75,14 @@ router.get('/qc', qcController.list);
 router.post('/qc', qcController.create);
 router.put('/qc/:id', qcController.update);
 router.delete('/qc/:id', qcController.delete);
+
+// Store & Inventory Routes
+router.get('/store', storeController.list);
+router.post('/store', storeController.create);
+router.put('/store/:id', storeController.update);
+router.post('/store/:id/adjust', storeController.adjustStock);
+router.delete('/store/:id', storeController.delete);
+router.get('/store/history', storeController.history);
 
 // Reports Summary Route
 router.get('/reports/summary', othersController.getReportsSummary);

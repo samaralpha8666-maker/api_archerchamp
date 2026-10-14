@@ -11,6 +11,8 @@ const defineOimlRecord = require('./oimlRecord.js');
 const defineNotification = require('./notification.js');
 const defineCalibrationCertificate = require('./calibrationCertificate.js');
 const defineQcReport = require('./qcReport.js');
+const defineStoreItem = require('./storeItem.js');
+const defineStoreTransactionLog = require('./storeTransactionLog.js');
 
 /**
  * Initializes and binds models dynamically to a specific tenant schema context.
@@ -35,6 +37,8 @@ function initTenantModels(sequelize, schemaName) {
   models.Notification = defineNotification(sequelize, schemaName);
   models.CalibrationCertificate = defineCalibrationCertificate(sequelize, schemaName);
   models.QcReport = defineQcReport(sequelize, schemaName);
+  models.StoreItem = defineStoreItem(sequelize, schemaName);
+  models.StoreTransactionLog = defineStoreTransactionLog(sequelize, schemaName);
 
   // Setup associations between tenant models
   models.User.hasMany(models.Document, { foreignKey: 'created_by_id', as: 'documents' });
@@ -45,6 +49,9 @@ function initTenantModels(sequelize, schemaName) {
 
   models.ElectronicsBoard.hasMany(models.ElectronicsTransactionLog, { foreignKey: 'board_id', as: 'transactionLogs' });
   models.ElectronicsTransactionLog.belongsTo(models.ElectronicsBoard, { foreignKey: 'board_id', as: 'board' });
+
+  models.StoreItem.hasMany(models.StoreTransactionLog, { foreignKey: 'item_id', as: 'transactionLogs', onDelete: 'CASCADE' });
+  models.StoreTransactionLog.belongsTo(models.StoreItem, { foreignKey: 'item_id', as: 'item' });
 
   return models;
 }
